@@ -65,28 +65,28 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="backdrop-blur-lg bg-white/10 border border-white/20">
+        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
           <CardHeader className="space-y-2 flex flex-col items-center">
             <div className="w-16 h-16 mb-2">
               <Image 
-                src="/images/bill.png" 
+                src="https://res.cloudinary.com/djoebsejh/image/upload/v1746694661/awqbdozq5owkznvgjg4j.png" 
                 alt="TaxMate Logo" 
                 width={64} 
                 height={64}
                 className="object-contain"
               />
             </div>
-            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
               Welcome to TaxMate
             </CardTitle>
-            <CardDescription className="text-center text-gray-300">
+            <CardDescription className="text-center text-gray-600 dark:text-gray-300">
               Sign in to manage your tax documents
             </CardDescription>
           </CardHeader>
@@ -107,10 +107,10 @@ export default function SignIn() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full border-white/20" />
+                <Separator className="w-full border-gray-200 dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-800 px-2 text-gray-400">
+                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
                   Or continue with
                 </span>
               </div>
@@ -123,17 +123,17 @@ export default function SignIn() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Email</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Email</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="name@example.com"
                           type="email"
                           disabled={isLoading}
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -142,22 +142,22 @@ export default function SignIn() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Password</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Password</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter your password"
                           type="password"
                           disabled={isLoading}
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
                 {error && (
-                  <p className="text-sm text-red-300 text-center">{error}</p>
+                  <p className="text-sm text-red-500 text-center">{error}</p>
                 )}
                 <Button
                   type="submit"
@@ -170,9 +170,9 @@ export default function SignIn() {
             </Form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <p className="text-sm text-center text-gray-400">
+            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               Don&apos;t have an account?{" "}
-              <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300">
+              <Link href="/auth/signup" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
                 Sign up
               </Link>
             </p>

@@ -84,33 +84,33 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="backdrop-blur-lg bg-white/10 border border-white/20">
+        <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
           <CardHeader className="space-y-2 flex flex-col items-center">
             <div className="w-16 h-16 mb-2">
               <Image 
-                src="/images/bill.png" 
+                src="https://res.cloudinary.com/djoebsejh/image/upload/v1746694661/awqbdozq5owkznvgjg4j.png" 
                 alt="TaxMate Logo" 
                 width={64} 
                 height={64}
                 className="object-contain"
               />
             </div>
-            <CardTitle className="text-2xl font-bold text-white">Create an Account</CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Create an Account</CardTitle>
+            <CardDescription className="text-center text-gray-600 dark:text-gray-300">
               Join TaxMate to simplify your tax management
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
               onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-              className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold flex items-center justify-center gap-2"
+              className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700"
               disabled={isLoading}
             >
               <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -124,10 +124,10 @@ export default function SignUp() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full border-white/20" />
+                <Separator className="w-full border-gray-200 dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-800 px-2 text-gray-400">
+                <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
                   Or sign up with email
                 </span>
               </div>
@@ -140,16 +140,16 @@ export default function SignUp() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Name</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Name</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="text"
                           placeholder="John Doe"
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -158,16 +158,16 @@ export default function SignUp() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Email</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Email</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="email"
                           placeholder="john@example.com"
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -176,16 +176,16 @@ export default function SignUp() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Password</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Password</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="password"
                           placeholder="••••••••"
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
@@ -194,21 +194,21 @@ export default function SignUp() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Confirm Password</FormLabel>
+                      <FormLabel className="text-gray-900 dark:text-white">Confirm Password</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="password"
                           placeholder="••••••••"
-                          className="bg-white/5 border-white/10 text-white"
+                          className="bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                         />
                       </FormControl>
-                      <FormMessage className="text-red-300" />
+                      <FormMessage className="text-red-500" />
                     </FormItem>
                   )}
                 />
                 {error && (
-                  <div className="text-red-300 text-sm">{error}</div>
+                  <div className="text-red-500 text-sm">{error}</div>
                 )}
                 <Button
                   type="submit"
@@ -221,9 +221,9 @@ export default function SignUp() {
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className="text-gray-300 text-sm">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
               Already have an account?{" "}
-              <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300">
+              <Link href="/auth/signin" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
                 Sign in
               </Link>
             </p>
