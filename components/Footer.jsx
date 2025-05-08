@@ -43,8 +43,8 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 relative">
-                <Image 
-                  src="/images/bill.png" 
+                <img 
+                  src="https://res.cloudinary.com/djoebsejh/image/upload/v1746694661/awqbdozq5owkznvgjg4j.png" 
                   alt="TaxMate Logo" 
                   width={32} 
                   height={32}

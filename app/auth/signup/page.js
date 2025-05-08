@@ -94,7 +94,7 @@ export default function SignUp() {
         <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
           <CardHeader className="space-y-2 flex flex-col items-center">
             <div className="w-16 h-16 mb-2">
-              <Image 
+              <img 
                 src="https://res.cloudinary.com/djoebsejh/image/upload/v1746694661/awqbdozq5owkznvgjg4j.png" 
                 alt="TaxMate Logo" 
                 width={64} 
