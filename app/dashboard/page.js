@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -35,7 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
-export default function Dashboard() {
+// Wrapper component to handle search params
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -866,5 +867,25 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense
+export default function Dashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <Navbar />
+        <div className="pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex justify-center">
+            <div className="w-full max-w-3xl">
+              <div className="h-96 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 } 
