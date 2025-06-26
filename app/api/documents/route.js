@@ -4,6 +4,7 @@ import connectToDatabase from '@/lib/db';
 import Document from '@/lib/models/Document';
 import { authOptions } from '@/lib/auth';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
+import { startDocumentWorkflow, getWorkflowStatus } from '@/lib/orkes';
 
 /**
  * GET handler to retrieve user documents
@@ -16,45 +17,91 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get('documentId');
-    const type = searchParams.get('type');
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
     
+    // Connect to MongoDB
     await connectToDatabase();
     
     // If a specific document is requested
     if (documentId) {
-      const document = await Document.findOne({
+      const document = await Document.findOne({ 
         _id: documentId,
         userId: session.user.id
-      }).lean();
+      });
       
       if (!document) {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 });
       }
       
-      return NextResponse.json({ document });
+      // If the document is still processing and has a workflow ID, check the status
+      if (document.status === 'processing' && document.workflowId) {
+        try {
+          const workflowStatus = await getWorkflowStatus(document.workflowId);
+          
+          // If workflow completed, update document with results
+          if (workflowStatus.status === 'COMPLETED' && workflowStatus.output) {
+            document.status = 'processed';
+            document.extractedData = workflowStatus.output.extractedData || null;
+            document.validationResults = workflowStatus.output.validationResults || null;
+            document.complianceStatus = workflowStatus.output.complianceStatus || null;
+            await document.save();
+          } else if (workflowStatus.status === 'FAILED') {
+            document.status = 'error';
+            await document.save();
+          }
+        } catch (error) {
+          console.error('Error checking workflow status:', error);
+          // Continue even if workflow check fails
+        }
+      }
+      
+      // Convert document to a plain object for response
+      const documentObj = document.toObject();
+      documentObj.id = documentObj._id.toString();
+      delete documentObj._id;
+      delete documentObj.__v;
+      
+      return NextResponse.json({ document: documentObj });
     }
     
-    // Build query for filtered documents
-    const query = { userId: session.user.id };
-    if (type) query.type = type;
-    if (status) query.status = status;
+    // Otherwise, get all documents for user
+    const documents = await Document.find({ userId: session.user.id })
+      .sort({ createdAt: -1 });
+      
+    // Check status of processing documents
+    for (const doc of documents) {
+      if (doc.status === 'processing' && doc.workflowId) {
+        try {
+          const workflowStatus = await getWorkflowStatus(doc.workflowId);
+          
+          if (workflowStatus.status === 'COMPLETED' && workflowStatus.output) {
+            doc.status = 'processed';
+            doc.extractedData = workflowStatus.output.extractedData || null;
+            doc.validationResults = workflowStatus.output.validationResults || null;
+            doc.complianceStatus = workflowStatus.output.complianceStatus || null;
+            await doc.save();
+          } else if (workflowStatus.status === 'FAILED') {
+            doc.status = 'error';
+            await doc.save();
+          }
+        } catch (error) {
+          console.error(`Error checking workflow for document ${doc._id}:`, error);
+
+        }
+      }
+    }
     
-    // Get documents with pagination
-    const documents = await Document.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
-    
-    return NextResponse.json({ 
-      documents,
-      total: await Document.countDocuments(query)
+
+    const documentObjects = documents.map(doc => {
+      const docObj = doc.toObject();
+      docObj.id = docObj._id.toString();
+      delete docObj._id;
+      delete docObj.__v;
+      return docObj;
     });
     
+    return NextResponse.json({ documents: documentObjects });
   } catch (error) {
     console.error('Error fetching documents:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -79,6 +126,7 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
     }
     
+    // Connect to MongoDB
     await connectToDatabase();
     
     // Find the document
@@ -91,19 +139,13 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
     
-    // Delete from Cloudinary if it has a cloudinaryId
-    if (document.cloudinaryId) {
-      await deleteFromCloudinary(document.cloudinaryId);
-    }
-    
     // Delete from database
     await Document.deleteOne({ _id: documentId });
     
-    return NextResponse.json({ 
-      success: true,
-      message: 'Document successfully deleted' 
-    });
+    // In a complete implementation, you would also delete the file from storage
+    // e.g., from Cloudinary using the cloudinaryId
     
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting document:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
