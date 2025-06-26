@@ -23,13 +23,6 @@ TaxMate is a comprehensive tax management application designed specifically for 
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18.0.0 or later
-- MongoDB database
-- Cloudinary account
-- Google API credentials
-
 ### Environment Setup
 
 Create a `.env.local` file in the root directory with the following configuration:
