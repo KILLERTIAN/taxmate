@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, FileText, X, AlertCircle, CheckCircle, Loader, RefreshCw } from "lucide-react";
+import { Upload, FileText, X, AlertCircle, CheckCircle, Loader, RefreshCw, Receipt, FileSpreadsheet, FileBox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
@@ -22,8 +22,8 @@ const DocumentUpload = ({ onUploadSuccess }) => {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [documentType, setDocumentType] = useState("invoice");
-  const [uploadStatus, setUploadStatus] = useState(null);
+  const [documentTypes, setDocumentTypes] = useState({});
+  const [uploadStatus, setUploadStatus] = useState({});
   const [uploadResults, setUploadResults] = useState([]);
   const [processingFiles, setProcessingFiles] = useState([]);
   const [uploadError, setUploadError] = useState(null);
@@ -165,21 +165,48 @@ const DocumentUpload = ({ onUploadSuccess }) => {
   }, [shouldRedirect, processedDocuments, router]);
 
   const onDrop = useCallback((acceptedFiles) => {
-    // Add unique IDs to files for tracking
-    const filesWithIds = acceptedFiles.map(file => ({
-      id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
-      file,
-      status: "pending", // pending, uploading, success, error
-      documentType // Set the current selected document type as default for each file
+    console.log('Files dropped:', acceptedFiles);
+    
+    // Update files state with status "pending" for each file
+    const updatedFiles = acceptedFiles.map(file => ({
+      ...file,
+      status: "pending"  // Explicitly set status to pending
     }));
-    setFiles(prevFiles => [...prevFiles, ...filesWithIds]);
-  }, [documentType]);
+    
+    console.log('Files with status:', updatedFiles);
+    
+    setFiles(prevFiles => [...prevFiles, ...updatedFiles]);
+    
+    // Initialize document types for new files
+    const newDocTypes = {};
+    acceptedFiles.forEach(file => {
+      // Try to auto-detect document type from filename
+      let detectedType = 'other';
+      const fileName = file.name.toLowerCase();
+      
+      if (fileName.includes('invoice') || fileName.includes('bill')) {
+        detectedType = 'invoice';
+      } else if (fileName.includes('receipt')) {
+        detectedType = 'receipt';
+      } else if (fileName.includes('statement') || fileName.includes('bank')) {
+        detectedType = 'bank_statement';
+      } else if (fileName.includes('tax') || fileName.includes('itr') || fileName.includes('form')) {
+        detectedType = 'tax_form';
+      }
+      
+      newDocTypes[file.name] = detectedType;
+    });
+    
+    setDocumentTypes(prev => ({ ...prev, ...newDocTypes }));
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
     accept: {
-      "application/pdf": [".pdf"],
-      "image/*": [".png", ".jpg", ".jpeg", ".webp"],
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/tiff': ['.tiff', '.tif'],
     },
     maxSize: 10485760, // 10MB
     onDropRejected: (rejections) => {
@@ -193,129 +220,114 @@ const DocumentUpload = ({ onUploadSuccess }) => {
     }
   });
 
-  const removeFile = (fileId) => {
-    setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));
-    setProcessingFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));
+  const removeFile = (fileName) => {
+    setFiles(files.filter(file => file.name !== fileName));
+    
+    // Also remove from status and types
+    const newStatus = {...uploadStatus};
+    delete newStatus[fileName];
+    setUploadStatus(newStatus);
+    
+    const newTypes = {...documentTypes};
+    delete newTypes[fileName];
+    setDocumentTypes(newTypes);
   };
 
-  // Allow changing document type per file
-  const updateFileDocumentType = (fileId, newType) => {
-    setFiles(prevFiles => 
-      prevFiles.map(f => f.id === fileId ? { ...f, documentType: newType } : f)
-    );
+  const handleDocTypeChange = (fileName, type) => {
+    setDocumentTypes(prev => ({
+      ...prev,
+      [fileName]: type
+    }));
   };
 
   const handleUpload = async () => {
-    if (files.length === 0 || !session) return;
-    
+    if (!session?.user || files.length === 0) return;
+
     setUploading(true);
-    setUploadProgress(0);
-    setUploadStatus("processing");
-    setUploadResults([]);
-    setUploadError(null);
-    setProcessedDocuments([]);
-    setShouldRedirect(false);
-
-    const pendingFiles = files.filter(f => f.status === "pending");
-    const results = [];
-    const newProcessingFiles = [];
     
-    try {
-      for (let i = 0; i < pendingFiles.length; i++) {
-        const fileObj = pendingFiles[i];
-        
-        // Update individual file status
-        setFiles(prev => 
-          prev.map(f => f.id === fileObj.id ? { ...f, status: "uploading" } : f)
-        );
-        
-        const formData = new FormData();
-        formData.append("file", fileObj.file);
-        // Use file-specific document type instead of global
-        formData.append("documentType", fileObj.documentType || documentType);
-
-        try {
-          const response = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || "Upload failed");
-          }
-
-          // Update the file status based on the workflow initiation
-          setFiles(prev => 
-            prev.map(f => f.id === fileObj.id ? { 
-              ...f, 
-              status: "uploading",
-              workflowId: result.document.workflowId,
-              documentId: result.document.id,
-              fileUrl: result.document.fileUrl,
-              documentType: result.document.type,
-              workflowStatus: "RUNNING",
-              initialResults: result.document.initialScanResults
-            } : f)
-          );
-          
-          // Add to processing files for status polling
-          newProcessingFiles.push({
-            id: fileObj.id,
-            documentId: result.document.id,
-            workflowId: result.document.workflowId,
-            workflowStatus: "RUNNING",
-            fileName: fileObj.file.name,
-            fileUrl: result.document.fileUrl,
-            documentType: result.document.type
-          });
-          
-          results.push({
-            fileId: fileObj.id,
-            fileName: fileObj.file.name,
-            success: true,
-            document: result.document,
-            workflowId: result.document.workflowId,
-            documentId: result.document.id
-          });
-
-        } catch (error) {
-          // Update individual file status
-          setFiles(prev => 
-            prev.map(f => f.id === fileObj.id ? { ...f, status: "error", error: error.message } : f)
-          );
-          
-          results.push({
-            fileId: fileObj.id,
-            fileName: fileObj.file.name,
-            success: false,
-            error: error.message
-          });
-        }
-
-        // Update overall progress
-        setUploadProgress(((i + 1) / pendingFiles.length) * 100);
-      }
-
-      setUploadResults(results);
-      
-      // Add new processing files to the state for polling
-      if (newProcessingFiles.length > 0) {
-        setProcessingFiles(prev => [...prev, ...newProcessingFiles]);
-      }
-      
-      const allSuccessful = results.every(r => r.success);
-      if (!allSuccessful) {
-        setUploadStatus("partial");
-      }
-      
-    } catch (error) {
-      console.error("Error during upload process:", error);
-      setUploadStatus("error");
-      setUploadError(error.message);
-    } finally {
+    // Get only files that haven't been uploaded yet
+    const filesToUpload = files.filter(file => 
+      file.status === "pending" || !file.status
+    );
+    
+    console.log('Files to upload:', filesToUpload.map(f => ({ name: f.name, status: f.status })));
+    
+    if (filesToUpload.length === 0) {
+      console.log('No files to upload');
       setUploading(false);
+      return;
+    }
+    
+    // Update all files being uploaded to have status "uploading"
+    setFiles(prevFiles => prevFiles.map(file => {
+      if (filesToUpload.some(f => f.name === file.name)) {
+        return {
+          ...file,
+          status: "uploading"
+        };
+      }
+      return file;
+    }));
+    
+    const newUploadStatus = {};
+    const uploadedDocs = [];
+
+    for (const file of filesToUpload) {
+      try {
+        // Create form data for upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('documentType', documentTypes[file.name] || 'other');
+        formData.append('userId', session.user.id);
+        
+        newUploadStatus[file.name] = { status: 'uploading', message: 'Uploading...' };
+        setUploadStatus({...uploadStatus, ...newUploadStatus});
+        
+        // Upload file
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        
+        newUploadStatus[file.name] = { 
+          status: 'success', 
+          message: 'Upload successful. Processing document...',
+          docId: uploadResult.documentId
+        };
+        
+        // Update file status to success
+        setFiles(prevFiles => prevFiles.map(f => 
+          f.name === file.name ? { ...f, status: "success" } : f
+        ));
+        
+        uploadedDocs.push(uploadResult.document);
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        newUploadStatus[file.name] = { 
+          status: 'error', 
+          message: error.message || 'Upload failed'
+        };
+        
+        // Update file status to error
+        setFiles(prevFiles => prevFiles.map(f => 
+          f.name === file.name ? { ...f, status: "error" } : f
+        ));
+      }
+      
+      setUploadStatus({...uploadStatus, ...newUploadStatus});
+    }
+    
+    setUploading(false);
+    
+    // Call the success callback with uploaded documents
+    if (uploadedDocs.length > 0 && onUploadSuccess) {
+      onUploadSuccess(uploadedDocs);
     }
   };
 
@@ -351,13 +363,30 @@ const DocumentUpload = ({ onUploadSuccess }) => {
     }
   };
 
+  const getDocumentIcon = (fileName) => {
+    const type = documentTypes[fileName] || 'other';
+    
+    switch(type) {
+      case 'invoice':
+        return <FileText className="h-5 w-5 text-blue-500" />;
+      case 'receipt':
+        return <Receipt className="h-5 w-5 text-green-500" />;
+      case 'bank_statement':
+        return <FileSpreadsheet className="h-5 w-5 text-orange-500" />;
+      case 'tax_form':
+        return <FileText className="h-5 w-5 text-purple-500" />;
+      default:
+        return <FileBox className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto p-6">
       <div className="mb-4">
         <Label htmlFor="document-type" className="block text-sm font-medium mb-2">
           Document Type
         </Label>
-        <Select value={documentType} onValueChange={setDocumentType}>
+        <Select value={documentTypes[files[0]?.name] || 'other'} onValueChange={setDocumentTypes}>
           <SelectTrigger id="document-type" className="w-full max-w-xs" disabled={uploading}>
             <SelectValue placeholder="Select document type" />
           </SelectTrigger>
@@ -414,9 +443,9 @@ const DocumentUpload = ({ onUploadSuccess }) => {
           </h3>
           <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
             <AnimatePresence>
-              {files.map((fileObj) => (
+              {files.map((file) => (
                 <motion.div
-                  key={fileObj.id}
+                  key={file.name}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -10 }}
@@ -424,39 +453,27 @@ const DocumentUpload = ({ onUploadSuccess }) => {
                   className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                    {getDocumentIcon(file.name)}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {fileObj.file.name}
+                        {file.name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {(fileObj.file.size / 1024 / 1024).toFixed(2)} MB
-                        {fileObj.workflowId && (
-                          <span className="ml-2">
-                            • Workflow: {fileObj.workflowStatus || "Initializing"}
-                          </span>
-                        )}
+                        {(file.size / 1024).toFixed(2)} KB
                       </p>
-                      {fileObj.initialResults?.preview && (
-                        <p className="text-xs text-blue-500 mt-1">
-                          Preview: {fileObj.initialResults.preview.detectedFields} fields detected
-                        </p>
-                      )}
-                      {fileObj.status === "error" && (
-                        <p className="text-xs text-red-500 mt-1">{fileObj.error}</p>
-                      )}
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    {/* Document type selector for individual files */}
-                    {fileObj.status === "pending" && (
+                    <div className="min-w-[140px]">
+                      <Label htmlFor={`docType-${file.name}`} className="sr-only">Document Type</Label>
                       <Select 
-                        value={fileObj.documentType || documentType} 
-                        onValueChange={(value) => updateFileDocumentType(fileObj.id, value)}
+                        value={documentTypes[file.name] || 'other'} 
+                        onValueChange={(value) => handleDocTypeChange(file.name, value)}
+                        disabled={!!uploadStatus[file.name]}
                       >
-                        <SelectTrigger className="w-32 h-8 text-xs">
-                          <SelectValue placeholder="Type" />
+                        <SelectTrigger id={`docType-${file.name}`} className="w-full text-sm h-9">
+                          <SelectValue placeholder="Document Type" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="invoice">Invoice</SelectItem>
@@ -466,15 +483,26 @@ const DocumentUpload = ({ onUploadSuccess }) => {
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    
+                    {!uploadStatus[file.name] ? (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-2"
+                        onClick={() => removeFile(file.name)}
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <div className="flex items-center space-x-2 min-w-[100px]">
+                        {getStatusIcon(uploadStatus[file.name].status)}
+                        <span className="text-xs">
+                          {uploadStatus[file.name].status === 'uploading' ? 'Uploading...' : 
+                           uploadStatus[file.name].status === 'success' ? 'Uploaded' : 'Failed'}
+                        </span>
+                      </div>
                     )}
-                    {getStatusIcon(fileObj.workflowStatus || fileObj.status, true, fileObj.fileUrl)}
-                    <button
-                      onClick={() => removeFile(fileObj.id)}
-                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 flex-shrink-0"
-                      disabled={fileObj.status === "uploading" || fileObj.workflowStatus === "RUNNING"}
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -495,13 +523,14 @@ const DocumentUpload = ({ onUploadSuccess }) => {
             >
               Clear Completed
             </Button>
+            {console.log('Upload button render - files:', files.map(f => ({ name: f.name, status: f.status })))}
             <Button
               onClick={handleUpload}
               disabled={
                 uploading || 
                 files.length === 0 || 
-                !session || 
-                !files.some(f => f.status === "pending")
+                !session ||
+                !files.some(file => !file.status || file.status === "pending")
               }
               className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white"
             >
