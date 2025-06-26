@@ -1,12 +1,12 @@
 # TaxMate - Tax Management for Freelancers.
 
-TaxMate is a comprehensive tax management application designed specifically for freelancers and independent contractors. It helps simplify tax document management, automates tax calculations, and ensures compliance with tax regulations
+TaxMate is a comprehensive tax management application designed specifically for freelancers and independent contractors. It helps simplify tax document management, automates tax calculations, and ensures compliance with tax
 
 ![TaxMate Logo](/public/images/bill.png)
 
 ## Features
 
-- **Document Management**: Upload, store, and organize all your tax-related documents in one place
+- **Document Management**: Upload, store, and organise all your tax-related documents in one place
 - **Intelligent Document Processing**: AI-powered extraction of data from receipts, invoices, and tax forms
 - **Tax Compliance Checks**: Automatic verification of tax documents for compliance with regulations
 - **Document Analytics**: Gain insights from your financial documents with detailed reports
