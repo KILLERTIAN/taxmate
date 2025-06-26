@@ -28,7 +28,7 @@ TaxMate is a comprehensive tax management application designed specifically for 
 - Node.js 18.0.0 or later
 - MongoDB database
 - Cloudinary account
-- Google API credentials (for authentication)
+- Google API credentials
 
 ### Environment Setup
 
